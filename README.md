@@ -15,7 +15,7 @@ End-to-end demo of [Langfuse](https://langfuse.com) (self-hosted, local) against
 
 ## Setup
 
-### 1. Start Langfuse locally
+### 1. Start Langfuse locally 
 
 ```bash
 ./setup.sh
