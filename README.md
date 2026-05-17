@@ -11,7 +11,7 @@ End-to-end demo of [Langfuse](https://langfuse.com) (self-hosted, local) against
 
 - Docker Desktop (running)
 - Python 3.11+
-- An Anthropic API key
+- An Anthropic API key 
 
 ## Setup
 
