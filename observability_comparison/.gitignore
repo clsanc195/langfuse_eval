@@ -1,31 +1,21 @@
 # ─── Secrets — never commit ─────────────────────────────
-# Env files (allow .env.example as a template)
 .env
 .env.*
 !.env.example
 !.env.sample
 !.env.template
 
-# Keys, certs, tokens
 *.pem
 *.key
 *.p12
 *.pfx
 *.crt
 *.cer
-*.der
 *.jks
 *.keystore
-id_rsa
-id_ed25519
-id_ecdsa
 *.gpg
-*.asc
 
-# Cloud provider credentials
-.aws/
-.gcp/
-.azure/
+# Cloud credentials
 gcp-*.json
 service-account*.json
 service_account*.json
@@ -33,7 +23,7 @@ service_account*.json
 credentials.json
 client_secret*.json
 
-# Common secret/auth file names
+# Generic secret names
 secrets/
 secret.*
 *.secret
@@ -44,46 +34,24 @@ token.json
 *.token
 .netrc
 
-# ─── Local-only data ────────────────────────────────────
-# Local Langfuse stack (cloned by setup.sh)
+# ─── Local-only ─────────────────────────────────────────
+# Cloned upstream Langfuse repo (re-cloned by setup.sh)
 langfuse/
 
-# Recordings, large media, generated artifacts
+# Large media (recordings can be many MB — host elsewhere if sharing)
 *.mov
 *.mp4
-*.zip
-*.tar.gz
-
-# Database dumps / backups
-*.sql
-*.dump
-*.bak
-*.backup
 
 # ─── Python ─────────────────────────────────────────────
 .venv/
-venv/
-env/
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-.coverage
-htmlcov/
-*.egg-info/
-dist/
-build/
 
 # ─── Jupyter ────────────────────────────────────────────
 .ipynb_checkpoints/
 
-# ─── IDE / OS ───────────────────────────────────────────
-.idea/
-.vscode/
+# ─── OS ─────────────────────────────────────────────────
 .DS_Store
-Thumbs.db
-*.swp
-*.swo

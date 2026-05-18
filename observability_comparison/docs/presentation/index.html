@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LLM Observability — A Comparative Evaluation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/reset.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/reveal.css">
+
+<style>
+/* ============================================================
+   Theme — Professional engineering, white background, AMEX blue
+   ============================================================ */
+:root {
+  --amex-blue: #006FCF;
+  --amex-blue-dark: #00478F;
+  --amex-blue-light: #E6F1FB;
+  --ink: #1A1A1A;
+  --ink-soft: #4A4A4A;
+  --line: #D7D7D7;
+  --line-soft: #ECECEC;
+  --bg: #FFFFFF;
+  --serif: 'Georgia', 'Times New Roman', serif;
+  --sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Helvetica Neue', sans-serif;
+  --mono: 'SF Mono', 'Monaco', 'Menlo', monospace;
+}
+
+html, body { background: var(--bg); }
+.reveal { background: var(--bg); color: var(--ink); font-family: var(--sans); }
+.reveal .slides { text-align: center; }
+.reveal .slides section { padding: 0 4%; box-sizing: border-box; }
+
+/* Headings */
+.reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+  color: var(--amex-blue);
+  font-family: var(--sans);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  text-align: center;
+  margin: 0 0 0.4em;
+}
+.reveal h1 { font-size: 2.2em; line-height: 1.1; }
+.reveal h2 { font-size: 1.6em; line-height: 1.15; }
+.reveal h3 { font-size: 1.1em; color: var(--ink); font-weight: 500; }
+.reveal h4 { font-size: 0.85em; color: var(--ink-soft); font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; }
+
+.reveal p, .reveal li { font-size: 0.55em; line-height: 1.5; color: var(--ink); }
+.reveal .small { font-size: 0.45em; color: var(--ink-soft); }
+.reveal .micro { font-size: 0.38em; color: var(--ink-soft); }
+
+/* Tables — centered, AMEX blue header */
+.reveal table {
+  margin: 0 auto;
+  border-collapse: collapse;
+  font-size: 0.5em;
+  text-align: left;
+  background: white;
+}
+.reveal th {
+  background: var(--amex-blue);
+  color: white;
+  padding: 10px 18px;
+  font-weight: 600;
+  text-align: left;
+  border: none;
+}
+.reveal td {
+  padding: 8px 18px;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--ink);
+  vertical-align: top;
+}
+.reveal tr:last-child td { border-bottom: none; }
+.reveal table.compact td, .reveal table.compact th { padding: 6px 12px; font-size: 0.95em; }
+.reveal table.center td, .reveal table.center th { text-align: center; }
+
+/* Accents */
+.reveal .accent { color: var(--amex-blue); font-weight: 600; }
+.reveal .muted { color: var(--ink-soft); }
+.reveal .dim { color: #888; }
+.reveal .pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--amex-blue-light);
+  color: var(--amex-blue-dark);
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+/* Code */
+.reveal pre {
+  margin: 0 auto;
+  font-size: 0.42em;
+  text-align: left;
+  background: #F7F8FA;
+  border-left: 3px solid var(--amex-blue);
+  padding: 14px 20px;
+  border-radius: 4px;
+  width: max-content;
+  max-width: 90%;
+  font-family: var(--mono);
+}
+.reveal pre code { color: var(--ink); background: transparent; padding: 0; }
+
+/* Bullet list — left-aligned but centered as a block */
+.reveal ul, .reveal ol {
+  display: inline-block;
+  text-align: left;
+  margin: 0 auto;
+  padding-left: 1.2em;
+}
+.reveal li { margin-bottom: 0.3em; }
+
+/* Two/three column layouts */
+.cols { display: flex; gap: 32px; align-items: flex-start; justify-content: center; margin-top: 1.5em; }
+.cols .col { flex: 1; max-width: 30%; }
+.cols .col h3 { font-size: 0.85em; color: var(--amex-blue); margin-bottom: 6px; text-align: center; }
+.cols .col p { font-size: 0.5em; text-align: center; }
+
+/* Slide number */
+.reveal .slide-number { color: var(--ink-soft); font-size: 0.7em; right: 24px; bottom: 16px; background: transparent; }
+
+/* Footer line */
+.footer-rule {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  bottom: 40px;
+  height: 1px;
+  background: var(--line-soft);
+}
+.footer-text {
+  position: absolute;
+  left: 4%;
+  bottom: 18px;
+  font-size: 0.34em;
+  color: var(--ink-soft);
+  text-align: left;
+}
+
+/* Title slide — vertically centered */
+.title-block { display: flex; flex-direction: column; justify-content: center; height: 70vh; }
+.title-block h1 { font-size: 2.6em; margin-bottom: 0.2em; }
+.title-block .subtitle { font-size: 0.7em; color: var(--ink-soft); margin-bottom: 1.2em; }
+.title-block .author { font-size: 0.45em; color: var(--ink-soft); }
+
+/* Quote / emphasis blocks */
+.reveal blockquote {
+  background: var(--amex-blue-light);
+  border-left: 4px solid var(--amex-blue);
+  padding: 16px 24px;
+  margin: 1em auto;
+  text-align: left;
+  font-style: normal;
+  font-size: 0.55em;
+  color: var(--ink);
+  max-width: 75%;
+  border-radius: 0 6px 6px 0;
+}
+.reveal blockquote p { font-size: 1em; margin: 0; }
+
+/* Status emojis sized for tables */
+.reveal td .ok { color: #1A6F38; }
+.reveal td .star { color: var(--amex-blue); font-weight: 700; }
+.reveal td .warn { color: #B26F00; }
+.reveal td .no { color: #B23333; }
+</style>
+</head>
+<body>
+
+<div class="reveal">
+<div class="slides">
+
+<!-- ============================================================
+     1. Title
+     ============================================================ -->
+<section>
+  <div class="title-block">
+    <h1>LLM Observability</h1>
+    <div class="subtitle accent">A Comparative Evaluation</div>
+    <p style="font-size: 0.6em; margin: 0;">Langfuse · LangSmith · Galileo</p>
+    <div class="author" style="margin-top: 3em;">
+      Carlos L Sanchez Vila<br>
+      <span class="muted">2026</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     2. The problem
+     ============================================================ -->
+<section>
+  <h2>The Problem</h2>
+  <p style="max-width: 65%; margin: 1em auto; font-size: 0.65em;">
+    Production LLM applications need observability.
+    Three platforms compete to solve it.
+    Choosing well affects developer velocity, evaluation rigor, hosting cost, and vendor lock-in.
+  </p>
+  <blockquote style="margin-top: 2em;">
+    <p><span class="accent">Goal:</span> Build the same agent once. Trace it through all three platforms. Compare what we get — empirically, side-by-side, with the same code, the same data, the same prompts.</p>
+  </blockquote>
+</section>
+
+<!-- ============================================================
+     3. What we evaluated
+     ============================================================ -->
+<section>
+  <h2>What We Evaluated</h2>
+  <p class="muted" style="margin-bottom: 1em;">Nineteen capability categories, ~120 features, three platforms.</p>
+  <table class="compact" style="font-size: 0.46em;">
+    <thead>
+      <tr><th>Category</th><th>Question answered</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Trace observability</td><td>Can I see what my agent is doing?</td></tr>
+      <tr><td>Sessions / threads</td><td>Can I follow a multi-turn conversation?</td></tr>
+      <tr><td>Scoring &amp; evaluation</td><td>How do I know if it's good?</td></tr>
+      <tr><td>Datasets &amp; experiments</td><td>Can I regression-test it?</td></tr>
+      <tr><td>Prompt management</td><td>Can I version and deploy prompts?</td></tr>
+      <tr><td>In-request guardrails</td><td>Can I block bad outputs in flight?</td></tr>
+      <tr><td>Monitoring &amp; alerts</td><td>Will I know when production breaks?</td></tr>
+      <tr><td>Hosting &amp; pricing</td><td>What's the total cost of ownership?</td></tr>
+      <tr><td>SDK ergonomics &amp; ecosystem</td><td>How much friction to integrate?</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================
+     4. The three platforms
+     ============================================================ -->
+<section>
+  <h2>The Three Contenders</h2>
+  <div class="cols" style="margin-top: 2em;">
+    <div class="col">
+      <h3>Langfuse</h3>
+      <p>OSS, MIT-licensed, self-hostable. Framework-agnostic. Cloud and on-prem.</p>
+      <p class="micro" style="margin-top: 8px;">langfuse.com</p>
+    </div>
+    <div class="col">
+      <h3>LangSmith</h3>
+      <p>Built by LangChain. SaaS-first, deepest LangGraph integration, most polished UX.</p>
+      <p class="micro" style="margin-top: 8px;">smith.langchain.com</p>
+    </div>
+    <div class="col">
+      <h3>Galileo</h3>
+      <p>Evaluation-first. Auto-metrics on every trace. Only platform with in-request guardrails.</p>
+      <p class="micro" style="margin-top: 8px;">app.galileo.ai</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     5. Our approach
+     ============================================================ -->
+<section>
+  <h2>Our Approach</h2>
+  <p style="font-size: 0.6em;">Built once. Ran three times.</p>
+  <ul style="margin-top: 1.5em; font-size: 0.55em;">
+    <li>One <span class="accent">LangGraph</span> agent — a permission-checking helpdesk bot</li>
+    <li>Four tools — chained by dependency</li>
+    <li>Five scenarios — covering 1 / 2 / 3 / 4 tool calls + an error path</li>
+    <li>Identical instrumentation pattern across all three platforms</li>
+    <li>Prompts pulled from each platform's registry at runtime</li>
+    <li>Datasets registered in each platform</li>
+  </ul>
+</section>
+
+<!-- ============================================================
+     6. The agent — LangGraph execution graph
+     ============================================================ -->
+<section>
+  <h2>The Agent</h2>
+  <p class="muted" style="font-size: 0.5em;">LangGraph ReAct loop — a single agent node + tool node + conditional routing</p>
+  <svg viewBox="0 0 900 320" style="width: 80%; max-width: 850px; height: auto; margin-top: 1em;">
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#1A1A1A"/>
+      </marker>
+      <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#006FCF"/>
+      </marker>
+    </defs>
+
+    <!-- START circle -->
+    <circle cx="70" cy="160" r="34" fill="#1A1A1A"/>
+    <text x="70" y="166" text-anchor="middle" fill="white" font-size="14" font-weight="600" font-family="-apple-system, sans-serif">START</text>
+
+    <!-- arrow to agent -->
+    <line x1="104" y1="160" x2="220" y2="160" stroke="#1A1A1A" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+    <!-- agent node -->
+    <rect x="220" y="120" width="160" height="80" rx="10" fill="#006FCF"/>
+    <text x="300" y="155" text-anchor="middle" fill="white" font-size="18" font-weight="700" font-family="-apple-system, sans-serif">agent</text>
+    <text x="300" y="180" text-anchor="middle" fill="#cce5f7" font-size="11" font-family="-apple-system, sans-serif">ChatAnthropic + tools</text>
+
+    <!-- conditional edge label -->
+    <text x="430" y="115" text-anchor="middle" fill="#006FCF" font-size="13" font-weight="600" font-family="-apple-system, sans-serif">if tool_calls</text>
+
+    <!-- arrow agent → tools (top, going right then down) -->
+    <path d="M 380 145 Q 470 145 470 200" stroke="#006FCF" stroke-width="2.5" fill="none" marker-end="url(#arrow-blue)"/>
+
+    <!-- tools node -->
+    <rect x="380" y="220" width="180" height="80" rx="10" fill="white" stroke="#006FCF" stroke-width="2.5"/>
+    <text x="470" y="248" text-anchor="middle" fill="#006FCF" font-size="16" font-weight="700" font-family="-apple-system, sans-serif">ToolNode</text>
+    <text x="470" y="270" text-anchor="middle" fill="#4A4A4A" font-size="10" font-family="-apple-system, sans-serif">get_ads_id · get_permissions</text>
+    <text x="470" y="285" text-anchor="middle" fill="#4A4A4A" font-size="10" font-family="-apple-system, sans-serif">check_admin_access · get_employee_profile</text>
+
+    <!-- arrow tools → agent (going up then left) -->
+    <path d="M 380 240 Q 290 240 290 200" stroke="#1A1A1A" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+
+    <!-- conditional edge label for END -->
+    <text x="600" y="155" text-anchor="middle" fill="#1A1A1A" font-size="13" font-weight="600" font-family="-apple-system, sans-serif">else</text>
+
+    <!-- arrow agent → END -->
+    <line x1="380" y1="170" x2="780" y2="170" stroke="#1A1A1A" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+    <!-- END circle -->
+    <circle cx="820" cy="170" r="34" fill="#1A1A1A"/>
+    <text x="820" y="176" text-anchor="middle" fill="white" font-size="14" font-weight="600" font-family="-apple-system, sans-serif">END</text>
+  </svg>
+  <p class="small" style="margin-top: 1.2em;">Conditional edge: <span class="accent">if last AIMessage contains tool_calls → tools</span>, else → END.</p>
+</section>
+
+<!-- ============================================================
+     7. The four tools
+     ============================================================ -->
+<section>
+  <h2>The Tools</h2>
+  <p class="muted" style="font-size: 0.5em;">Chained by dependency — each tool's output feeds the next.</p>
+  <table style="font-size: 0.46em;">
+    <thead>
+      <tr><th>Tool</th><th>Input</th><th>Output</th><th>Used when…</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>get_ads_id</code></td><td>employee name</td><td>ads_id</td><td>any question</td></tr>
+      <tr><td><code>get_permissions</code></td><td>ads_id</td><td>list of permissions</td><td>"what access does X have?"</td></tr>
+      <tr><td><code>check_admin_access</code></td><td>permissions, resource</td><td>boolean</td><td>"does X have admin on Y?"</td></tr>
+      <tr><td><code>get_employee_profile</code></td><td>ads_id</td><td>role / team / manager / tenure</td><td>"who is X, is access appropriate?"</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================
+     8. The five scenarios
+     ============================================================ -->
+<section>
+  <h2>The Scenarios</h2>
+  <p class="muted" style="font-size: 0.5em;">Same agent, varying complexity. The model decides how many tools to call.</p>
+  <table style="font-size: 0.44em;">
+    <thead>
+      <tr><th>Scenario</th><th>Question</th><th>Tools called</th><th>Eval style</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>one_tool</code></td><td>"What's the ads_id for Jane Doe?"</td><td class="center">1</td><td>exact match</td></tr>
+      <tr><td><code>two_tools</code></td><td>"What permissions does Alice Nguyen have?"</td><td class="center">2</td><td>set comparison</td></tr>
+      <tr><td><code>three_tools</code></td><td>"Does Jane Doe have admin on billing-prod?"</td><td class="center">3</td><td>boolean</td></tr>
+      <tr><td><code>judgment_call</code></td><td>"Explain who Jane Doe is and whether she should keep admin..."</td><td class="center">4</td><td>LLM-as-judge</td></tr>
+      <tr><td><code>error_path</code></td><td>"What's the ads_id for Nobody McNobody?"</td><td class="center">1<sup>*</sup></td><td>error handling</td></tr>
+    </tbody>
+  </table>
+  <p class="micro" style="margin-top: 1em;">* Returns an error string; agent should recover, not fabricate.</p>
+</section>
+
+<!-- ============================================================
+     9. Instrumentation effort — side by side
+     ============================================================ -->
+<section>
+  <h2>Instrumentation Effort</h2>
+  <p style="font-size: 0.5em;">For a LangGraph agent, how much code does each platform require?</p>
+  <div class="cols">
+    <div class="col">
+      <h3>Langfuse</h3>
+      <pre><code>from langfuse.langchain import CallbackHandler
+
+agent.invoke(state, config={
+  "callbacks": [CallbackHandler()]
+})</code></pre>
+      <p class="micro" style="margin-top: 0.5em;">1 callback + 3 env vars</p>
+    </div>
+    <div class="col">
+      <h3>LangSmith</h3>
+      <pre><code># no code change
+
+os.environ["LANGSMITH_TRACING"] = "true"
+# + LANGSMITH_API_KEY
+# + LANGSMITH_PROJECT</code></pre>
+      <p class="micro" style="margin-top: 0.5em;">3 env vars, zero code</p>
+    </div>
+    <div class="col">
+      <h3>Galileo</h3>
+      <pre><code>from galileo.handlers.langchain import GalileoCallback
+
+agent.invoke(state, config={
+  "callbacks": [GalileoCallback()]
+})</code></pre>
+      <p class="micro" style="margin-top: 0.5em;">1 callback + 3 env vars</p>
+    </div>
+  </div>
+  <p class="small" style="margin-top: 1.5em;">Outside LangChain code, all three require explicit instrumentation: Langfuse <code>@observe</code>, LangSmith <code>@traceable</code>, Galileo <code>@log</code>.</p>
+</section>
+
+<!-- ============================================================
+     10. Trace tree — same data, three UIs
+     ============================================================ -->
+<section>
+  <h2>Trace Tree</h2>
+  <p style="font-size: 0.55em;">All three platforms render the same hierarchy: <span class="accent">agent → tool → agent → tool → …</span></p>
+  <table style="font-size: 0.46em; margin-top: 1.5em;">
+    <thead>
+      <tr><th></th><th>Langfuse</th><th>LangSmith</th><th>Galileo</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Hierarchical span tree</td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="star">⭐</span></td><td class="center"><span class="ok">✅</span></td></tr>
+      <tr><td>LLM call detail (prompt, completion, tokens)</td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="ok">✅</span></td></tr>
+      <tr><td>Tool call detail (input, output, status)</td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="ok">✅</span></td></tr>
+      <tr><td>Latency rollups</td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="star">⭐</span></td><td class="center"><span class="ok">✅</span></td></tr>
+      <tr><td>Cost tracking (built-in pricing)</td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="ok">✅</span></td></tr>
+    </tbody>
+  </table>
+  <p class="small" style="margin-top: 1em;">⭐ best-in-class · ✅ supported · ⚠️ partial · ❌ missing</p>
+</section>
+
+<!-- ============================================================
+     11. Sessions / multi-turn
+     ============================================================ -->
+<section>
+  <h2>Multi-turn / Sessions</h2>
+  <p style="font-size: 0.55em;">Three turns of a conversation, grouped under one ID.</p>
+  <table style="font-size: 0.46em; margin-top: 1.5em;">
+    <thead>
+      <tr><th></th><th>Langfuse</th><th>LangSmith</th><th>Galileo</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Term</td><td>Session</td><td>Thread</td><td>Session</td></tr>
+      <tr><td>Metadata key</td><td><code>langfuse_session_id</code></td><td><code>thread_id</code></td><td><code>session_id</code></td></tr>
+      <tr><td>UI rendering</td><td>list of traces</td><td class="center"><span class="star">⭐ chat UI</span></td><td>list of traces</td></tr>
+      <tr><td>Per-session aggregates</td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="ok">✅</span></td></tr>
+      <tr><td>Session-level scoring</td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="warn">⚠️</span></td></tr>
+    </tbody>
+  </table>
+  <p class="small" style="margin-top: 1.2em;"><span class="accent">Winner:</span> LangSmith Threads — only platform with a true chat-UI rendering of multi-turn data.</p>
+</section>
+
+<!-- ============================================================
+     12. Scoring — what runs by default
+     ============================================================ -->
+<section>
+  <h2>Scoring &amp; Evaluation</h2>
+  <p style="font-size: 0.55em;">All three support auto-running evaluators. The difference is what runs <span class="accent">by default</span>.</p>
+  <table style="font-size: 0.46em; margin-top: 1.2em;">
+    <thead>
+      <tr><th></th><th>Setup effort</th><th>What runs by default</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Langfuse</strong></td><td>configure: model + prompt + filter + sampling</td><td>nothing — opt-in</td></tr>
+      <tr><td><strong>LangSmith</strong></td><td>configure: Online Evaluator rule</td><td>nothing — opt-in</td></tr>
+      <tr><td><strong>Galileo</strong></td><td class="accent">zero config</td><td>Tool Selection · Action Completion · Context Adherence · Instruction Adherence · Tool Error Rate · Hallucination · Toxicity · PII</td></tr>
+    </tbody>
+  </table>
+  <blockquote style="margin-top: 1.5em;">
+    <p><span class="accent">Once configured</span>, Langfuse and LangSmith evaluators run server-side on every matching trace, the same way Galileo's auto-metrics do. The real choice is whether the defaults pick the rubric for you, or whether you pick it yourself.</p>
+  </blockquote>
+</section>
+
+<!-- ============================================================
+     13. Galileo's headline — auto-metrics on every trace
+     ============================================================ -->
+<section>
+  <h2>Galileo's Headline Feature</h2>
+  <p style="font-size: 0.55em;">Auto-metrics on every trace. <span class="muted">No config, no prompt template, no sampling rate.</span></p>
+  <table class="compact" style="font-size: 0.46em; margin-top: 1.5em;">
+    <thead>
+      <tr><th>Metric</th><th>What it measures</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Tool Selection Quality</td><td>Did the agent pick correct tools?</td></tr>
+      <tr><td>Action Completion</td><td>Did the multi-step task finish?</td></tr>
+      <tr><td>Context Adherence</td><td>Did the response stay grounded in tool outputs?</td></tr>
+      <tr><td>Instruction Adherence</td><td>Did it follow the system prompt?</td></tr>
+      <tr><td>Tool Error Rate</td><td>Fraction of tool calls that errored</td></tr>
+      <tr><td>Hallucination (ChainPoll)</td><td>Fabricated facts not in source material</td></tr>
+      <tr><td>Toxicity / PII</td><td>Safety signals</td></tr>
+    </tbody>
+  </table>
+  <p class="small" style="margin-top: 1em;">Trade-off: opinionated defaults catch obvious problems out of the box; can be noise for teams with specific quality rubrics.</p>
+</section>
+
+<!-- ============================================================
+     14. Prompt management
+     ============================================================ -->
+<section>
+  <h2>Prompt Management</h2>
+  <p style="font-size: 0.55em;">All three offer versioned prompt registries. The data models diverge.</p>
+  <table style="font-size: 0.46em; margin-top: 1.2em;">
+    <thead>
+      <tr><th></th><th>Langfuse</th><th>LangSmith</th><th>Galileo</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Versioning model</td><td>sequential + <span class="accent">mutable labels</span></td><td class="accent">git-style commits</td><td>sequential only</td></tr>
+      <tr><td>Format</td><td>raw string OR chat</td><td>LangChain Runnable</td><td>chat messages only</td></tr>
+      <tr><td>Scoping</td><td>project</td><td>workspace</td><td>project</td></tr>
+      <tr><td>Public sharing</td><td class="center"><span class="no">❌</span></td><td class="center"><span class="star">⭐ Prompt Hub</span></td><td class="center"><span class="no">❌</span></td></tr>
+      <tr><td>Idempotent push</td><td class="center"><span class="no">❌</span></td><td class="center"><span class="star">⭐ 409 native</span></td><td class="center"><span class="no">❌</span></td></tr>
+      <tr><td>Pull from SDK</td><td>string</td><td>Runnable</td><td>JSON-parse needed</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================
+     15. Datasets & experiments
+     ============================================================ -->
+<section>
+  <h2>Datasets &amp; Experiments</h2>
+  <p style="font-size: 0.55em;">Registries of inputs / expected outputs. Run the agent against them. Compare.</p>
+  <table style="font-size: 0.46em; margin-top: 1.2em;">
+    <thead>
+      <tr><th></th><th>Langfuse</th><th>LangSmith</th><th>Galileo</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Create dataset via SDK</td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="ok">✅</span></td></tr>
+      <tr><td>Trace → dataset promotion</td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="star">⭐ one-click</span></td><td class="center"><span class="ok">✅</span></td></tr>
+      <tr><td>Splits (train / test / eval)</td><td class="center"><span class="no">❌</span></td><td class="center"><span class="star">⭐ unique</span></td><td class="center"><span class="no">❌</span></td></tr>
+      <tr><td>Item-level immutable versions</td><td class="center"><span class="warn">⚠️</span></td><td class="center"><span class="star">⭐</span></td><td class="center"><span class="warn">⚠️</span></td></tr>
+      <tr><td>Synthetic dataset generation</td><td class="center"><span class="no">❌</span></td><td class="center"><span class="no">❌</span></td><td class="center"><span class="star">⭐ unique</span></td></tr>
+      <tr><td>Pairwise A/B comparison UI</td><td class="center"><span class="warn">⚠️</span></td><td class="center"><span class="star">⭐ unique</span></td><td class="center"><span class="warn">⚠️</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================
+     16. Guardrails — Galileo Protect
+     ============================================================ -->
+<section>
+  <h2>In-Request Guardrails</h2>
+  <p style="font-size: 0.55em;">The category Galileo owns alone — sits in the request path, blocks bad outputs in flight.</p>
+  <table style="font-size: 0.46em; margin-top: 1.5em;">
+    <thead>
+      <tr><th></th><th>Langfuse</th><th>LangSmith</th><th>Galileo</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Real-time blocking / modification</td><td class="center"><span class="no">❌</span></td><td class="center"><span class="no">❌</span></td><td class="center"><span class="star">⭐ Protect</span></td></tr>
+      <tr><td>Hallucination block in flight</td><td class="center"><span class="no">❌</span></td><td class="center"><span class="no">❌</span></td><td class="center"><span class="star">⭐</span></td></tr>
+      <tr><td>PII redaction at gateway</td><td class="center"><span class="no">❌</span></td><td class="center"><span class="no">❌</span></td><td class="center"><span class="star">⭐</span></td></tr>
+      <tr><td>Toxicity / safety blocking</td><td class="center"><span class="no">❌</span></td><td class="center"><span class="no">❌</span></td><td class="center"><span class="star">⭐</span></td></tr>
+      <tr><td>Custom guardrail rules</td><td class="center"><span class="no">❌</span></td><td class="center"><span class="no">❌</span></td><td class="center"><span class="star">⭐</span></td></tr>
+    </tbody>
+  </table>
+  <p class="small" style="margin-top: 1.2em;">Langfuse and LangSmith are <span class="accent">post-hoc observability</span>. Galileo Protect operates pre-response. Different product category.</p>
+</section>
+
+<!-- ============================================================
+     17. Hosting & pricing
+     ============================================================ -->
+<section>
+  <h2>Hosting &amp; Pricing</h2>
+  <table style="font-size: 0.46em; margin-top: 1em;">
+    <thead>
+      <tr><th></th><th>Langfuse</th><th>LangSmith</th><th>Galileo</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>OSS free self-host</td><td class="center"><span class="star">⭐ MIT</span></td><td class="center"><span class="no">❌</span></td><td class="center"><span class="no">❌</span></td></tr>
+      <tr><td>Managed SaaS</td><td class="center"><span class="ok">✅ Cloud</span></td><td class="center"><span class="star">⭐</span></td><td class="center"><span class="ok">✅</span></td></tr>
+      <tr><td>Enterprise self-host</td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="ok">✅ Helm</span></td><td class="center"><span class="ok">✅ VPC</span></td></tr>
+      <tr><td>Free tier</td><td>Hobby OR self-host forever</td><td>Developer · 5k traces/mo</td><td>Free · work email required</td></tr>
+      <tr><td>Personal email signup</td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="no">❌</span></td></tr>
+      <tr><td>Public pricing</td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="ok">✅</span></td><td class="center"><span class="warn">⚠️ some tiers</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================
+     18. Where each uniquely wins
+     ============================================================ -->
+<section>
+  <h2>Where Each Uniquely Wins</h2>
+  <div class="cols" style="margin-top: 1.5em;">
+    <div class="col">
+      <h3>Langfuse</h3>
+      <ul style="font-size: 0.42em;">
+        <li>Only OSS / free self-host</li>
+        <li>Mutable label pointers for prompt deployment</li>
+        <li>Both raw-string AND chat prompt formats</li>
+        <li>Most mature OTEL ingestion</li>
+        <li>Full local dev via docker</li>
+        <li>HIPAA via self-host control</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>LangSmith</h3>
+      <ul style="font-size: 0.42em;">
+        <li>Zero-config LangChain integration</li>
+        <li>Threads UI for chat debugging</li>
+        <li>Pairwise experiment comparison</li>
+        <li>Public Prompt Hub</li>
+        <li>Dataset splits</li>
+        <li>Trace-aware Playground</li>
+        <li>Most polished monitoring</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>Galileo</h3>
+      <ul style="font-size: 0.42em;">
+        <li>Auto-metrics on every trace</li>
+        <li>Galileo Protect — only in-request guardrails</li>
+        <li>Log Streams within a project</li>
+        <li>Synthetic dataset generation</li>
+        <li>Built-in PII detection</li>
+        <li>ChainPoll hallucination method</li>
+        <li>Continuous learning on metrics</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     19. Decision guidance
+     ============================================================ -->
+<section>
+  <h2>Decision Guidance</h2>
+  <table style="font-size: 0.46em; margin-top: 1em;">
+    <thead>
+      <tr><th>If your priority is…</th><th>Pick</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Free self-host, OSS, data sovereignty</td><td class="accent">Langfuse</td></tr>
+      <tr><td>Lowest-friction LangChain / LangGraph integration</td><td class="accent">LangSmith</td></tr>
+      <tr><td>Most polished chat / multi-turn debugging</td><td class="accent">LangSmith (Threads)</td></tr>
+      <tr><td>Eval-first agent quality without setup</td><td class="accent">Galileo</td></tr>
+      <tr><td>Real-time production guardrails in the request path</td><td class="accent">Galileo (no peer)</td></tr>
+      <tr><td>Lowest cost at high trace volume</td><td class="accent">Langfuse self-host</td></tr>
+      <tr><td>Air-gapped or strict data residency</td><td class="accent">Langfuse self-host OR Galileo VPC</td></tr>
+      <tr><td>Dataset / experiment workflow with pairwise compare</td><td class="accent">LangSmith</td></tr>
+      <tr><td>Public prompt sharing / community library</td><td class="accent">LangSmith Prompt Hub</td></tr>
+      <tr><td>Least vendor lock-in</td><td class="accent">Langfuse (OSS + OTEL)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================
+     20. Honest weaknesses
+     ============================================================ -->
+<section>
+  <h2>Honest Weaknesses</h2>
+  <div class="cols" style="margin-top: 2em;">
+    <div class="col">
+      <h3>Langfuse</h3>
+      <p style="font-size: 0.46em;">UI polish trails LangSmith. Monitoring dashboards less mature. Self-host = self-operate (cost moves from license to ops).</p>
+    </div>
+    <div class="col">
+      <h3>LangSmith</h3>
+      <p style="font-size: 0.46em;">SaaS-only at the community tier. No free self-host. Vendor-tied to LangChain even though it works elsewhere via <code>@traceable</code>.</p>
+    </div>
+    <div class="col">
+      <h3>Galileo</h3>
+      <p style="font-size: 0.46em;">Work-email signup gate. SDK API churn between versions. Documentation lighter than the others. Smaller framework ecosystem. Pricing less transparent.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     21. What this repo proves
+     ============================================================ -->
+<section>
+  <h2>What This Repo Proves</h2>
+  <ul style="font-size: 0.5em;">
+    <li>Same LangGraph agent, instrumented for all three platforms — <span class="accent">no code branching</span></li>
+    <li>Prompts pushed to all three registries — content-aware, idempotent push</li>
+    <li>Datasets registered in each platform with the correct per-platform schema</li>
+    <li>Sessions / threads grouping verified end-to-end</li>
+    <li>Programmatic scores attached via SDK (Langfuse, LangSmith)</li>
+    <li>LLM-as-judge auto-evaluators running on every trace (Galileo) or on filtered traces (Langfuse, LangSmith)</li>
+    <li>5 scenarios × 3 platforms × 11 notebooks — all validated headlessly</li>
+  </ul>
+</section>
+
+<!-- ============================================================
+     22. The demo
+     ============================================================ -->
+<section>
+  <div class="title-block">
+    <h1>Live Demo</h1>
+    <div class="subtitle accent">Same agent. Three platforms. Side by side.</div>
+    <p class="muted" style="font-size: 0.55em; margin-top: 1em;">
+      Watch the same trace in Langfuse, LangSmith, and Galileo.<br>
+      See what's identical, what diverges, what each platform makes easy.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================
+     23. Q&A / End
+     ============================================================ -->
+<section>
+  <div class="title-block">
+    <h1>Questions?</h1>
+    <p class="muted" style="font-size: 0.55em; margin-top: 1em;">
+      Repository: <code>observability_comparison/</code><br>
+      Comparison doc: <code>docs/comparison.md</code><br>
+      Feature matrix: <code>docs/feature_matrix.md</code>
+    </p>
+  </div>
+</section>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/reveal.js"></script>
+<script>
+Reveal.initialize({
+  hash: true,
+  controls: true,
+  controlsLayout: 'edges',
+  slideNumber: 'c/t',
+  progress: true,
+  history: true,
+  transition: 'fade',
+  width: 1280,
+  height: 800,
+  margin: 0.06,
+  minScale: 0.2,
+  maxScale: 2.0,
+});
+</script>
+</body>
+</html>
